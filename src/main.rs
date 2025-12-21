@@ -32,8 +32,11 @@ async fn main() -> io::Result<()> {
     );
     loop {
         let (len, _) = input_socket.recv_from(&mut buf).await?;
-        let packet = f1_game_library_models_25::deserialise_udp_packet_from_bytes(&buf[..len])
-            .expect("Only valid packets");
+        let Ok(packet) = f1_game_library_models_25::deserialise_udp_packet_from_bytes(&buf[..len])
+        else {
+            println!("Failed to parse packet");
+            continue;
+        };
 
         match packet {
             F1Data::ParticipantData(data) => {
