@@ -19,13 +19,13 @@ async fn main() -> io::Result<()> {
     };
     let source_port = args.get(2).map(String::as_ref).unwrap_or("20888");
 
-    let input_socket = UdpSocket::bind(format!("0.0.0.0:{}", source_port)).await?;
+    let input_socket = UdpSocket::bind(format!("127.0.0.1:{}", source_port)).await?;
     let output_socket = UdpSocket::bind(destination).await?;
     let mut buf = [0; 2048];
 
     let mut manager = FlagManager::new(output_socket);
     println!(
-        "Listening to 0.0.0.0:{} and outputting on {}",
+        "Listening to 127.0.0.1:{} and outputting on {}",
         source_port, destination
     );
     loop {
