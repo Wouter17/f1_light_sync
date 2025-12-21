@@ -1,8 +1,8 @@
-use std::env;
 use std::io;
 use std::time::Duration;
 use std::time::Instant;
 
+use clap::Parser;
 use f1_game_library_models_25::telemetry_data::EventType;
 use f1_game_library_models_25::telemetry_data::F1Data;
 use f1_game_library_models_25::telemetry_data::VehicleFiaFlags;
@@ -10,14 +10,27 @@ use tokio::net::UdpSocket;
 
 const PENALTY_SHOW_TIME: Duration = Duration::from_secs(2);
 
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// Destination IP (with port) for the light packets
+    destination: String,
+
+    /// Port to listen on for packets
+    #[arg(short, long, default_value_t = 20888)]
+    source_port: u32,
+
+    /// Port to forward the UDP packet to
+    #[arg(short, long)]
+    forward: Option<String>,
+}
+
 #[tokio::main]
 async fn main() -> io::Result<()> {
-    let args: Vec<String> = env::args().collect();
-    let Some(destination) = args.get(1) else {
-        println!("Expected a destination");
-        return Ok(());
-    };
-    let source_port = args.get(2).map(String::as_ref).unwrap_or("20888");
+    let args = Args::parse();
+
+    let source_port = args.source_port;
+    let destination = &args.destination;
 
     let input_socket = UdpSocket::bind(format!("127.0.0.1:{}", source_port)).await?;
     let output_socket = UdpSocket::bind("0.0.0.0:0").await?;
@@ -27,11 +40,24 @@ async fn main() -> io::Result<()> {
 
     let mut manager = FlagManager::new(output_socket);
     println!(
-        "Listening to 127.0.0.1:{} and outputting on {}",
-        source_port, destination
+        "Listening to 127.0.0.1:{} and outputting on {}{}",
+        source_port,
+        destination,
+        args.forward
+            .as_ref()
+            .map(|s| format!(" and forwarding to {s}"))
+            .unwrap_or_default()
     );
+
     loop {
         let (len, _) = input_socket.recv_from(&mut buf).await?;
+
+        // Forward the message if forwarding has an address
+        if let Some(addr) = &args.forward {
+            input_socket.send_to(&buf[..len], addr).await?;
+        }
+
+        // Try parsing the message
         let Ok(packet) = f1_game_library_models_25::deserialise_udp_packet_from_bytes(&buf[..len])
         else {
             println!("Failed to parse packet");
