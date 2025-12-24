@@ -82,10 +82,10 @@ async fn main() -> io::Result<()> {
                 EventType::Penalty(penalty) => manager.set_penalty(penalty.vehicle_index).await,
                 EventType::ChequeredFlag(_) => manager.finish().await,
                 EventType::RedFlag(_) => manager.set_global_flag(GlobalFlag::Red).await,
-                EventType::SessionStart(_) | EventType::SessionEnd(_) => manager.reset(),
+                EventType::SessionStart(_) | EventType::SessionEnd(_) => manager.reset().await,
                 _ => (),
             },
-            F1Data::ClassificationData(_) => manager.reset(),
+            F1Data::ClassificationData(_) => manager.reset().await,
             F1Data::CarStatusData(data) => {
                 let driver_index = data.header.player_car_index;
                 match data
@@ -195,12 +195,13 @@ impl FlagManager {
         }
     }
 
-    fn reset(&mut self) {
+    async fn reset(&mut self) {
         self.global_flag = None;
         self.local_flag = None;
         self.race_finished = false;
         self.showing_penalty_since = None;
         self.driver_numbers = Default::default();
+        self.show(None).await;
     }
 
     async fn show(&mut self, flag: Option<Flag>) {
