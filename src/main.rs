@@ -239,7 +239,7 @@ impl FlagManager {
 
     fn check_penalty(&mut self) {
         if let Some(time) = self.showing_penalty_since
-            && time.duration_since(Instant::now()) > PENALTY_SHOW_TIME
+            && time.elapsed() > PENALTY_SHOW_TIME
         {
             self.showing_penalty_since = None;
         }
