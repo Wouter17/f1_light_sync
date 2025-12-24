@@ -121,7 +121,7 @@ dependencies = [
 
 [[package]]
 name = "f1_light_sync"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "clap",
  "f1-game-library-models-25",
