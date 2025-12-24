@@ -204,7 +204,7 @@ impl FlagManager {
     }
 
     async fn show(&mut self, flag: Option<Flag>) {
-        let string_input = flag.map(Flag::to_enum_str).unwrap_or_default();
+        let string_input = flag.map(Flag::to_enum_str).unwrap_or("c".to_string());
         if self
             .output_socket
             .send(string_input.as_bytes())
