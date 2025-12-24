@@ -174,11 +174,12 @@ fn show_based_on_local(
     flag: Option<LocalFlag>,
     penalty: bool,
     finished: bool,
-) -> Option<Option<LocalFlag>> {
+) -> Option<Option<Flag>> {
     match flag {
         None if !penalty && !finished => Some(None),
-        Some(LocalFlag::Green) if !finished => Some(flag),
-        Some(LocalFlag::Yellow) | Some(LocalFlag::Blue) => Some(flag),
+        Some(LocalFlag::Green) if !finished => Some(flag.map(Flag::from)),
+        Some(LocalFlag::Yellow) | Some(LocalFlag::Blue) => Some(flag.map(Flag::from)),
+        _ if finished => Some(Some(Flag::Finish)),
         _ => None,
     }
 }
@@ -226,7 +227,13 @@ impl FlagManager {
     async fn set_penalty(&mut self, index: usize) {
         self.showing_penalty_since = Some(Instant::now());
         if self.global_flag.is_none() {
-            self.show(Some(Flag::Penalty(index))).await;
+            let driver_number = self.driver_numbers.get(index).cloned().unwrap_or_default();
+            self.show(Some(Flag::Penalty(if driver_number == 0 {
+                index
+            } else {
+                driver_number.into()
+            })))
+            .await;
         }
     }
 
@@ -255,7 +262,7 @@ impl FlagManager {
             self.showing_penalty_since.is_some(),
             self.race_finished,
         ) {
-            self.show(local_flag.map(Flag::from)).await;
+            self.show(local_flag).await;
         }
     }
 
@@ -276,7 +283,7 @@ impl FlagManager {
             self.showing_penalty_since.is_some(),
             self.race_finished,
         ) {
-            self.show(local_flag.map(Flag::from)).await;
+            self.show(local_flag).await;
         }
     }
 
